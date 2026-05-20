@@ -1,0 +1,10 @@
+# Large local data and generated outputs
+*.parquet
+pir_submission_all_2025_users.json
+pir_validation_recommendations*.json
+*_copurchase_cache.pkl
+*.pkl
+
+# Python cache
+__pycache__/
+*.py[cod]
