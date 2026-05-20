@@ -1,0 +1,154 @@
+{
+  "train_cutoff": "2025-10-01",
+  "train_end": "2025-11-01",
+  "eval_cutoff": "2025-11-01",
+  "eval_end": "2025-12-01",
+  "train_users": 80000,
+  "eval_users": 80000,
+  "train_rows": 3061077,
+  "eval_rows": 4281395,
+  "candidate_recall": {
+    "candidate_hits": 120651,
+    "target_items": 341209,
+    "candidate_recall": 0.35359852758866267,
+    "oracle_precision_at_10": 0.15081375
+  },
+  "baseline_metrics": {
+    "users_evaluated": 80000,
+    "k": 10,
+    "total_correct": 76918,
+    "precision_at_10_micro": 0.0961475,
+    "mean_iou": 0.07126733219829481,
+    "global_iou": 0.072271587376009,
+    "mean_reciprocal_rank_first_hit": 0.3917309126984108,
+    "map_at_k": 0.21147717991780327
+  },
+  "ranker_metrics": {
+    "users_evaluated": 80000,
+    "k": 10,
+    "total_correct": 79614,
+    "precision_at_10_micro": 0.0995175,
+    "mean_iou": 0.07347304768463887,
+    "global_iou": 0.07499470136916621,
+    "mean_reciprocal_rank_first_hit": 0.4130447767857093,
+    "map_at_k": 0.22384535353875254
+  },
+  "feature_importances": [
+    [
+      "ui_recency_x_freq",
+      795035.829416275
+    ],
+    [
+      "ui_days_since_last",
+      495671.2601175308
+    ],
+    [
+      "purchase_share",
+      235475.43099737167
+    ],
+    [
+      "user_days_since_last",
+      90777.79571294785
+    ],
+    [
+      "item_txns_7d",
+      90070.15588378906
+    ],
+    [
+      "ui_qty",
+      86874.13806533813
+    ],
+    [
+      "item_txns",
+      83670.81456136703
+    ],
+    [
+      "item_avg_price",
+      73594.06338691711
+    ],
+    [
+      "item_buyers",
+      52331.26423740387
+    ],
+    [
+      "user_txns_90d",
+      51425.00642681122
+    ],
+    [
+      "item_trend_ratio",
+      48042.07333564758
+    ],
+    [
+      "source_copurchase",
+      46399.72635316849
+    ],
+    [
+      "price_ratio",
+      27777.17401266098
+    ],
+    [
+      "source_group",
+      23335.82224035263
+    ],
+    [
+      "item_txns_30d",
+      23146.21449995041
+    ],
+    [
+      "user_recency_x_freq",
+      21741.78934955597
+    ],
+    [
+      "user_txns",
+      20748.58301305771
+    ],
+    [
+      "user_txns_30d",
+      14462.03316450119
+    ],
+    [
+      "item_txns_90d",
+      9423.255456447601
+    ],
+    [
+      "user_avg_price",
+      8397.177535057068
+    ],
+    [
+      "ui_txns",
+      7465.109351158142
+    ],
+    [
+      "event_views",
+      6410.463617324829
+    ],
+    [
+      "user_velocity",
+      5090.612379074097
+    ],
+    [
+      "user_items",
+      3958.5948762893677
+    ],
+    [
+      "item_penetration",
+      3906.5591621398926
+    ],
+    [
+      "event_carts",
+      3148.170501232147
+    ],
+    [
+      "source_user_hist",
+      915.9865484237671
+    ],
+    [
+      "source_global",
+      195.11280822753906
+    ],
+    [
+      "item_log_buyers",
+      0.0
+    ]
+  ]
+}

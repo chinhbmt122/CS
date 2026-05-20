@@ -2,7 +2,11 @@
 *.parquet
 pir_submission_all_2025_users.json
 pir_validation_recommendations*.json
+feature_ranker_baseline_recs.json
+feature_ranker_baseline_metrics.json
+feature_ranker_eval_users.csv
 *_copurchase_cache.pkl
+feature_ranker_copurchase_*.pkl
 *.pkl
 
 # Python cache

@@ -148,6 +148,7 @@ This is necessary for cold-start users, but it is naturally weaker than personal
 | Historical location popularity | rejected |
 | BPR latent factor model | rejected |
 | ALS latent factor model | optional only, not primary |
+| LightGBM feature-based ranker | promising improvement |
 
 ## 6. Experiments and Results
 
@@ -231,7 +232,63 @@ Rolling spot check for `base top 9 + ALS fill`:
 
 Conclusion: ALS is optional for rank-sensitive reranking, but not used in the primary final output.
 
-## 8. Cold-Start Analysis
+## 8. Feature-Based Ranker Upgrade
+
+After the first hybrid model was finished, we identified one important missing part: a supervised second-stage ranker.
+
+The hybrid recommender manually combines signals with fixed weights. A feature-based ranker instead learns how to combine many user, item, and user-item features from labeled next-month purchases.
+
+Implemented model:
+
+```text
+Candidate generation -> feature table -> LightGBM LambdaRank -> rerank top candidates
+```
+
+Feature families used:
+
+| Feature family | Examples |
+| --- | --- |
+| User behavior | `user_txns`, `user_items`, `user_days_since_last`, `user_velocity`, `user_recency_x_freq` |
+| Item popularity/trend | `item_txns`, `item_buyers`, `item_txns_7d`, `item_txns_30d`, `item_trend_ratio` |
+| User-item affinity | `ui_txns`, `ui_qty`, `ui_days_since_last`, `purchase_share`, `ui_recency_x_freq` |
+| Event behavior | `event_views`, `event_carts` |
+| Price affinity | `user_avg_price`, `item_avg_price`, `price_ratio` |
+| Candidate source flags | `source_user_hist`, `source_global`, `source_group`, `source_copurchase` |
+
+The ranker was trained leakage-safely:
+
+```text
+features before month M -> labels from purchases in month M
+```
+
+### Sample Validation Results
+
+December sample:
+
+| Model | Users | Correct@10 | Precision@10 | Mean IoU | MRR | MAP@10 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Hybrid baseline | 120,000 | 100,943 | 0.084119 | 0.063178 | 0.346841 | 0.185436 |
+| LightGBM ranker | 120,000 | 102,389 | 0.085324 | 0.063765 | 0.364569 | 0.194145 |
+
+November rolling sample:
+
+| Model | Users | Correct@10 | Precision@10 | Mean IoU | MRR | MAP@10 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Hybrid baseline | 80,000 | 76,918 | 0.096148 | 0.071267 | 0.391731 | 0.211477 |
+| LightGBM ranker | 80,000 | 79,614 | 0.099518 | 0.073473 | 0.413045 | 0.223845 |
+
+Top feature importances were consistently:
+
+- `ui_recency_x_freq`
+- `ui_days_since_last`
+- `purchase_share`
+- item popularity and trend features
+- `source_copurchase`
+- price ratio and group-source signals
+
+Conclusion: the feature-based ranker is the best next enhancement. It improves both precision and ranking metrics on sampled rolling validation. The current final submission file was produced by the hybrid model, but the ranker is now the recommended next production layer if we have time to scale it to all users.
+
+## 9. Cold-Start Analysis
 
 December 2025 validation:
 
@@ -253,7 +310,7 @@ Current best December precision:
 
 Cold-start is the main limitation. Without January target users, January events, customer metadata, signup information, or prediction-time location/session context, true cold-start users can only receive generic fallback recommendations.
 
-## 9. Is the Current Precision Good Enough?
+## 10. Is the Current Precision Good Enough?
 
 The final December precision@10 is about `0.0841`, meaning the model finds about `0.84` correct purchased items inside every 10 recommended items per purchasing customer.
 
@@ -279,7 +336,7 @@ The final model gets about `0.0841` overall precision@10. This is around 75% of 
 
 Conclusion: the current precision is reasonable for the available data and task constraints, especially because cold-start users are included in evaluation. It is not perfect, but further large improvement likely requires extra context, such as January behavior, customer profile, target-time location/session data, or a provided target customer list.
 
-## 10. Final Output
+## 11. Final Output
 
 Final file:
 
@@ -300,13 +357,13 @@ Verification:
 
 The output covers all customers observed in 2025 transaction/event data. It cannot include January-only unseen customer IDs unless a target customer list is provided.
 
-## 11. Final Configuration
+## 12. Final Configuration
 
 ```powershell
 python pir_pipeline.py --mode predict --cutoff 2026-01-01 --k 10 --half-life-days 60 --copurchase-weight 0.15 --category-weight 0.06 --category-level brand,category_l3 --location-weight 0 --global-weight 0.05 --output pir_submission_all_2025_users.json
 ```
 
-## 12. Final Decision
+## 13. Final Decision
 
 With the current data, enhancement should stop here.
 
