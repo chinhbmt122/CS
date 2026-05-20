@@ -16,6 +16,8 @@ ACTION_WEIGHTS = {
     "view_item": 1.0,
 }
 
+INVALID_ITEM_IDS = {"", "(not set)"}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Personalized Item Recommendation pipeline")
@@ -66,9 +68,14 @@ def recency_expr(date_col: str, anchor: datetime, half_life_days: float) -> pl.E
     return (-(age_days.clip(lower_bound=0.0)) / half_life_days).exp()
 
 
+def valid_item_expr() -> pl.Expr:
+    item = pl.col("item_id").cast(pl.Utf8)
+    return item.is_not_null() & ~item.is_in(list(INVALID_ITEM_IDS))
+
+
 def purchase_signals(path: str, start: datetime | None, end: datetime, anchor: datetime, half_life_days: float) -> pl.LazyFrame:
     lf = pl.scan_parquet(path)
-    filters = [pl.col("updated_date") < pl.lit(end)]
+    filters = [pl.col("updated_date") < pl.lit(end), valid_item_expr()]
     if start is not None:
         filters.append(pl.col("updated_date") >= pl.lit(start))
     return (
@@ -94,6 +101,7 @@ def event_signals(path: str, start: datetime, end: datetime, anchor: datetime, h
             (pl.col("event_date") >= pl.lit(start))
             & (pl.col("event_date") < pl.lit(end))
             & (pl.col("event_type").is_in(["view_item", "add_to_cart"]))
+            & valid_item_expr()
         )
         .select(
             pl.col("customer_id").cast(pl.Int64),
@@ -455,13 +463,13 @@ def write_json(path: str, payload: object) -> None:
     Path(path).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def write_recommendations(path: str, recommendations: dict[str, list[str]]) -> None:
+def write_recommendations(path: str, recommendations: dict[int, list[str]]) -> None:
     output_path = Path(path)
     if output_path.suffix.lower() == ".pkl":
         with output_path.open("wb") as f:
             pickle.dump(recommendations, f, protocol=pickle.HIGHEST_PROTOCOL)
         return
-    write_json(path, recommendations)
+    write_json(path, {str(user_id): items for user_id, items in recommendations.items()})
 
 
 def main() -> None:
@@ -481,7 +489,7 @@ def main() -> None:
     location_top_items = build_location_top_items(args, cutoff) if args.location_weight else {}
 
     recommendations = {
-        str(user_id): recommend_for_user(
+        int(user_id): recommend_for_user(
             user_id,
             user_item_scores,
             copurchase_neighbors,
@@ -499,9 +507,8 @@ def main() -> None:
 
     if args.mode == "validate":
         truth = ground_truth(args.transactions, cutoff, valid_end)
-        int_recommendations = {int(k): v for k, v in recommendations.items()}
         seen_users = set(user_item_scores)
-        metrics = evaluate(int_recommendations, truth, args.k)
+        metrics = evaluate(recommendations, truth, args.k)
         metrics.update(
             {
                 "cutoff": args.cutoff,
@@ -517,8 +524,8 @@ def main() -> None:
                 "max_basket_items": args.max_basket_items,
                 "max_copurchase_neighbors": args.max_copurchase_neighbors,
                 "recommendation_rows": len(recommendations),
-                "seen_user_metrics": evaluate(int_recommendations, filter_truth(truth, seen_users, True), args.k),
-                "cold_user_metrics": evaluate(int_recommendations, filter_truth(truth, seen_users, False), args.k),
+                "seen_user_metrics": evaluate(recommendations, filter_truth(truth, seen_users, True), args.k),
+                "cold_user_metrics": evaluate(recommendations, filter_truth(truth, seen_users, False), args.k),
             }
         )
         write_json(args.metrics_output, metrics)
