@@ -288,6 +288,42 @@ Top feature importances were consistently:
 
 Conclusion: the feature-based ranker is the best next enhancement. It improves both precision and ranking metrics on sampled rolling validation. The current final submission file was produced by the hybrid model, but the ranker is now the recommended next production layer if we have time to scale it to all users.
 
+### Hyperparameter Optimization
+
+We also ran bounded random-search HPO for the LightGBM ranker. This is more valuable than exhaustive tuning of the hybrid pipeline because the ranker has many interacting tree parameters and already showed clear validation signal.
+
+Search space included:
+
+- `num_boost_round`
+- `learning_rate`
+- `num_leaves`
+- `min_data_in_leaf`
+- `feature_fraction`
+- `bagging_fraction`
+- `lambda_l2`
+
+December 40k-user sample:
+
+| Model | Correct@10 | Precision@10 | Mean IoU | MRR | MAP@10 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Hybrid baseline | 33,473 | 0.083683 | 0.062851 | 0.345176 | 0.184890 |
+| Default LightGBM ranker | 33,594 | 0.083985 | 0.062720 | 0.361880 | 0.191742 |
+| Tuned LightGBM ranker | 33,914 | 0.084785 | 0.063348 | 0.363221 | 0.193012 |
+
+Best sampled parameters:
+
+```text
+num_boost_round = 240
+learning_rate = 0.07
+num_leaves = 63
+min_data_in_leaf = 80
+feature_fraction = 0.7
+bagging_fraction = 0.9
+lambda_l2 = 3.0
+```
+
+Conclusion: automated HPO helps the feature ranker. It gives a small precision gain and a clearer MAP/MRR improvement. A larger HPO run on more users would be the next best optimization step if compute time is available.
+
 ## 9. Cold-Start Analysis
 
 December 2025 validation:
@@ -341,7 +377,7 @@ Conclusion: the current precision is reasonable for the available data and task 
 Final file:
 
 ```text
-pir_submission_all_2025_users.json
+pir_submission_all_2025_users.pkl
 ```
 
 Verification:
@@ -353,14 +389,14 @@ Verification:
 | Empty lists | 0 |
 | Short lists | 0 |
 | Lists with duplicate items | 0 |
-| File size | about 717 MB |
+| PKL file size | about 518 MB |
 
 The output covers all customers observed in 2025 transaction/event data. It cannot include January-only unseen customer IDs unless a target customer list is provided.
 
 ## 12. Final Configuration
 
 ```powershell
-python pir_pipeline.py --mode predict --cutoff 2026-01-01 --k 10 --half-life-days 60 --copurchase-weight 0.15 --category-weight 0.06 --category-level brand,category_l3 --location-weight 0 --global-weight 0.05 --output pir_submission_all_2025_users.json
+python pir_pipeline.py --mode predict --cutoff 2026-01-01 --k 10 --half-life-days 60 --copurchase-weight 0.15 --category-weight 0.06 --category-level brand,category_l3 --location-weight 0 --global-weight 0.05 --output pir_submission_all_2025_users.pkl
 ```
 
 ## 13. Final Decision

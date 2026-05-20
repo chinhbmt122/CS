@@ -43,10 +43,12 @@ python pir_pipeline.py --mode validate --cutoff 2025-12-01 --valid-end 2026-01-0
 Run final prediction when target customers are known:
 
 ```powershell
-python pir_pipeline.py --mode predict --cutoff 2026-01-01 --target-customers january_customers.csv --output pir_submission.json
+python pir_pipeline.py --mode predict --cutoff 2026-01-01 --target-customers january_customers.csv --output pir_submission.pkl
 ```
 
 The target customer file must contain a `customer_id` column.
+
+Use `.pkl` as the output extension when the required submission format is pickle. The pipeline writes JSON for other extensions and pickle for `.pkl`.
 
 ## What to avoid
 

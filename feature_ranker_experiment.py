@@ -66,6 +66,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--group-candidates", type=int, default=8)
     parser.add_argument("--copurchase-seeds", type=int, default=4)
     parser.add_argument("--copurchase-neighbors", type=int, default=10)
+    parser.add_argument("--num-boost-round", type=int, default=220)
+    parser.add_argument("--learning-rate", type=float, default=0.05)
+    parser.add_argument("--num-leaves", type=int, default=63)
+    parser.add_argument("--min-data-in-leaf", type=int, default=40)
+    parser.add_argument("--feature-fraction", type=float, default=0.9)
+    parser.add_argument("--bagging-fraction", type=float, default=0.85)
+    parser.add_argument("--lambda-l2", type=float, default=0.0)
+    parser.add_argument("--tune-trials", type=int, default=0)
     parser.add_argument("--output", default="feature_ranker_experiment.json")
     return parser.parse_args()
 
@@ -388,7 +396,7 @@ def build_feature_frame(
     return df, truth
 
 
-def train_ranker(train_df: pl.DataFrame, seed: int) -> lgb.Booster:
+def train_ranker(train_df: pl.DataFrame, args: argparse.Namespace, params_override: dict | None = None) -> lgb.Booster:
     train_df = train_df.sort("customer_id")
     groups = train_df.group_by("customer_id", maintain_order=True).len().get_column("len").to_list()
     x = train_df.select(FEATURES).to_numpy().astype(np.float32)
@@ -397,20 +405,23 @@ def train_ranker(train_df: pl.DataFrame, seed: int) -> lgb.Booster:
     params = {
         "objective": "lambdarank",
         "metric": "map",
-        "learning_rate": 0.05,
-        "num_leaves": 63,
-        "min_data_in_leaf": 40,
-        "bagging_fraction": 0.85,
+        "learning_rate": args.learning_rate,
+        "num_leaves": args.num_leaves,
+        "min_data_in_leaf": args.min_data_in_leaf,
+        "bagging_fraction": args.bagging_fraction,
         "bagging_freq": 1,
-        "feature_fraction": 0.9,
-        "seed": seed,
+        "feature_fraction": args.feature_fraction,
+        "lambda_l2": args.lambda_l2,
+        "seed": args.seed,
         "num_threads": -1,
         "verbosity": -1,
     }
+    if params_override:
+        params.update(params_override)
     return lgb.train(
         params,
         dataset,
-        num_boost_round=220,
+        num_boost_round=int(params.pop("num_boost_round", args.num_boost_round)),
     )
 
 
@@ -443,6 +454,40 @@ def candidate_recall(df: pl.DataFrame, truth: dict[int, set[str]], k: int) -> di
         "candidate_recall": hits / total_targets if total_targets else 0.0,
         "oracle_precision_at_10": min(hits, perfect_hits) / (len(truth) * k) if truth else 0.0,
     }
+
+
+def random_param_trials(args: argparse.Namespace) -> list[dict]:
+    rng = np.random.default_rng(args.seed + 999)
+    trials = [
+        {
+            "name": "default",
+            "params": {
+                "num_boost_round": args.num_boost_round,
+                "learning_rate": args.learning_rate,
+                "num_leaves": args.num_leaves,
+                "min_data_in_leaf": args.min_data_in_leaf,
+                "feature_fraction": args.feature_fraction,
+                "bagging_fraction": args.bagging_fraction,
+                "lambda_l2": args.lambda_l2,
+            },
+        }
+    ]
+    for i in range(args.tune_trials):
+        trials.append(
+            {
+                "name": f"trial_{i + 1}",
+                "params": {
+                    "num_boost_round": int(rng.choice([120, 180, 240, 320, 420])),
+                    "learning_rate": float(rng.choice([0.025, 0.035, 0.05, 0.07, 0.10])),
+                    "num_leaves": int(rng.choice([31, 47, 63, 95, 127])),
+                    "min_data_in_leaf": int(rng.choice([20, 40, 80, 120, 200])),
+                    "feature_fraction": float(rng.choice([0.7, 0.8, 0.9, 1.0])),
+                    "bagging_fraction": float(rng.choice([0.7, 0.8, 0.9, 1.0])),
+                    "lambda_l2": float(rng.choice([0.0, 0.1, 0.5, 1.0, 3.0])),
+                },
+            }
+        )
+    return trials
 
 
 def run_baseline(args: argparse.Namespace, users: list[int], cutoff: str, end: str, truth: dict[int, set[str]]) -> dict[str, float | int]:
@@ -510,12 +555,25 @@ def main() -> None:
     eval_df, eval_truth = build_feature_frame(args, eval_cutoff, eval_end, eval_users, eval_candidates)
     print(f"eval feature rows={eval_df.height} positives={eval_df['label'].sum()}", flush=True)
 
-    model = train_ranker(train_df, args.seed)
-    ranker_recs = predict_ranker(model, eval_df, args.k)
-    ranker_metrics = evaluate(ranker_recs, eval_truth, args.k)
     baseline_metrics = run_baseline(args, eval_users, args.eval_cutoff, args.eval_end, eval_truth)
     recall = candidate_recall(eval_df, eval_truth, args.k)
-    importances = sorted(zip(FEATURES, model.feature_importance(importance_type="gain").tolist()), key=lambda kv: kv[1], reverse=True)
+
+    trial_results = []
+    best = None
+    best_model = None
+    for trial in random_param_trials(args):
+        print(f"training ranker {trial['name']} params={trial['params']}", flush=True)
+        model = train_ranker(train_df, args, trial["params"])
+        recs = predict_ranker(model, eval_df, args.k)
+        metrics = evaluate(recs, eval_truth, args.k)
+        row = {"name": trial["name"], "params": trial["params"], "metrics": metrics}
+        trial_results.append(row)
+        if best is None or metrics["map_at_k"] > best["metrics"]["map_at_k"]:
+            best = row
+            best_model = model
+
+    assert best is not None and best_model is not None
+    importances = sorted(zip(FEATURES, best_model.feature_importance(importance_type="gain").tolist()), key=lambda kv: kv[1], reverse=True)
 
     payload = {
         "train_cutoff": args.train_cutoff,
@@ -528,7 +586,9 @@ def main() -> None:
         "eval_rows": eval_df.height,
         "candidate_recall": recall,
         "baseline_metrics": baseline_metrics,
-        "ranker_metrics": ranker_metrics,
+        "ranker_metrics": best["metrics"],
+        "best_trial": best,
+        "trial_results": trial_results,
         "feature_importances": importances,
     }
     Path(args.output).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")

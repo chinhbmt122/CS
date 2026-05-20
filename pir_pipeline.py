@@ -455,6 +455,15 @@ def write_json(path: str, payload: object) -> None:
     Path(path).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def write_recommendations(path: str, recommendations: dict[str, list[str]]) -> None:
+    output_path = Path(path)
+    if output_path.suffix.lower() == ".pkl":
+        with output_path.open("wb") as f:
+            pickle.dump(recommendations, f, protocol=pickle.HIGHEST_PROTOCOL)
+        return
+    write_json(path, recommendations)
+
+
 def main() -> None:
     args = parse_args()
     cutoff = datetime.fromisoformat(args.cutoff)
@@ -486,7 +495,7 @@ def main() -> None:
         )
         for user_id in targets
     }
-    write_json(args.output, recommendations)
+    write_recommendations(args.output, recommendations)
 
     if args.mode == "validate":
         truth = ground_truth(args.transactions, cutoff, valid_end)
