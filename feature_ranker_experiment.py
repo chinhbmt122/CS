@@ -74,6 +74,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bagging-fraction", type=float, default=0.85)
     parser.add_argument("--lambda-l2", type=float, default=0.0)
     parser.add_argument("--tune-trials", type=int, default=0)
+    parser.add_argument("--optuna-trials", type=int, default=0)
     parser.add_argument("--output", default="feature_ranker_experiment.json")
     return parser.parse_args()
 
@@ -490,6 +491,58 @@ def random_param_trials(args: argparse.Namespace) -> list[dict]:
     return trials
 
 
+def run_optuna_search(
+    args: argparse.Namespace,
+    train_df: pl.DataFrame,
+    eval_df: pl.DataFrame,
+    eval_truth: dict[int, set[str]],
+) -> tuple[list[dict], dict, lgb.Booster]:
+    import optuna
+
+    trial_results: list[dict] = []
+    best_model: lgb.Booster | None = None
+    best_row: dict | None = None
+
+    def objective(trial: optuna.Trial) -> float:
+        nonlocal best_model, best_row
+        params = {
+            "num_boost_round": trial.suggest_categorical("num_boost_round", [160, 220, 280, 360, 460]),
+            "learning_rate": trial.suggest_float("learning_rate", 0.025, 0.10, log=True),
+            "num_leaves": trial.suggest_categorical("num_leaves", [31, 47, 63, 95, 127]),
+            "min_data_in_leaf": trial.suggest_categorical("min_data_in_leaf", [30, 60, 90, 140, 220]),
+            "feature_fraction": trial.suggest_float("feature_fraction", 0.65, 1.0),
+            "bagging_fraction": trial.suggest_float("bagging_fraction", 0.65, 1.0),
+            "lambda_l2": trial.suggest_float("lambda_l2", 0.0, 5.0),
+        }
+        model = train_ranker(train_df, args, params)
+        recs = predict_ranker(model, eval_df, args.k)
+        metrics = evaluate(recs, eval_truth, args.k)
+        row = {"name": f"optuna_trial_{trial.number}", "params": params, "metrics": metrics}
+        trial_results.append(row)
+        trial.set_user_attr("total_correct", metrics["total_correct"])
+        trial.set_user_attr("precision_at_10_micro", metrics["precision_at_10_micro"])
+        trial.set_user_attr("mean_iou", metrics["mean_iou"])
+        trial.set_user_attr("mrr", metrics["mean_reciprocal_rank_first_hit"])
+        trial.set_user_attr("map_at_k", metrics["map_at_k"])
+        if best_row is None or metrics["map_at_k"] > best_row["metrics"]["map_at_k"]:
+            best_row = row
+            best_model = model
+        return float(metrics["map_at_k"])
+
+    study = optuna.create_study(
+        direction="maximize",
+        sampler=optuna.samplers.TPESampler(seed=args.seed),
+    )
+    study.optimize(objective, n_trials=args.optuna_trials, show_progress_bar=False)
+    assert best_row is not None and best_model is not None
+    best_row = {
+        **best_row,
+        "study_best_value": study.best_value,
+        "study_best_params": study.best_params,
+    }
+    return trial_results, best_row, best_model
+
+
 def run_baseline(args: argparse.Namespace, users: list[int], cutoff: str, end: str, truth: dict[int, set[str]]) -> dict[str, float | int]:
     target_path = Path("feature_ranker_eval_users.csv")
     output_path = Path("feature_ranker_baseline_recs.json")
@@ -558,19 +611,22 @@ def main() -> None:
     baseline_metrics = run_baseline(args, eval_users, args.eval_cutoff, args.eval_end, eval_truth)
     recall = candidate_recall(eval_df, eval_truth, args.k)
 
-    trial_results = []
-    best = None
-    best_model = None
-    for trial in random_param_trials(args):
-        print(f"training ranker {trial['name']} params={trial['params']}", flush=True)
-        model = train_ranker(train_df, args, trial["params"])
-        recs = predict_ranker(model, eval_df, args.k)
-        metrics = evaluate(recs, eval_truth, args.k)
-        row = {"name": trial["name"], "params": trial["params"], "metrics": metrics}
-        trial_results.append(row)
-        if best is None or metrics["map_at_k"] > best["metrics"]["map_at_k"]:
-            best = row
-            best_model = model
+    if args.optuna_trials:
+        trial_results, best, best_model = run_optuna_search(args, train_df, eval_df, eval_truth)
+    else:
+        trial_results = []
+        best = None
+        best_model = None
+        for trial in random_param_trials(args):
+            print(f"training ranker {trial['name']} params={trial['params']}", flush=True)
+            model = train_ranker(train_df, args, trial["params"])
+            recs = predict_ranker(model, eval_df, args.k)
+            metrics = evaluate(recs, eval_truth, args.k)
+            row = {"name": trial["name"], "params": trial["params"], "metrics": metrics}
+            trial_results.append(row)
+            if best is None or metrics["map_at_k"] > best["metrics"]["map_at_k"]:
+                best = row
+                best_model = model
 
     assert best is not None and best_model is not None
     importances = sorted(zip(FEATURES, best_model.feature_importance(importance_type="gain").tolist()), key=lambda kv: kv[1], reverse=True)

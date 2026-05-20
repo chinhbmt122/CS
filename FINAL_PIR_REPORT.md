@@ -290,7 +290,7 @@ Conclusion: the feature-based ranker is the best next enhancement. It improves b
 
 ### Hyperparameter Optimization
 
-We also ran bounded random-search HPO for the LightGBM ranker. This is more valuable than exhaustive tuning of the hybrid pipeline because the ranker has many interacting tree parameters and already showed clear validation signal.
+We also ran bounded automated HPO for the LightGBM ranker. This is more valuable than exhaustive tuning of the hybrid pipeline because the ranker has many interacting tree parameters and already showed clear validation signal.
 
 Search space included:
 
@@ -308,9 +308,10 @@ December 40k-user sample:
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Hybrid baseline | 33,473 | 0.083683 | 0.062851 | 0.345176 | 0.184890 |
 | Default LightGBM ranker | 33,594 | 0.083985 | 0.062720 | 0.361880 | 0.191742 |
-| Tuned LightGBM ranker | 33,914 | 0.084785 | 0.063348 | 0.363221 | 0.193012 |
+| Random-search tuned ranker | 33,914 | 0.084785 | 0.063348 | 0.363221 | 0.193012 |
+| Optuna TPE tuned ranker | 33,716 | 0.084290 | 0.063021 | 0.362245 | 0.192229 |
 
-Best sampled parameters:
+Best random-search sampled parameters:
 
 ```text
 num_boost_round = 240
@@ -322,7 +323,19 @@ bagging_fraction = 0.9
 lambda_l2 = 3.0
 ```
 
-Conclusion: automated HPO helps the feature ranker. It gives a small precision gain and a clearer MAP/MRR improvement. A larger HPO run on more users would be the next best optimization step if compute time is available.
+Best Optuna sampled parameters:
+
+```text
+num_boost_round = 460
+learning_rate = 0.0528
+num_leaves = 47
+min_data_in_leaf = 90
+feature_fraction = 0.7961
+bagging_fraction = 0.7277
+lambda_l2 = 0.5993
+```
+
+Conclusion: automated HPO helps the feature ranker, but the short 8-trial Optuna run did not beat the earlier random-search result. This is not a failure of Optuna; it means the current Optuna budget is too small to clearly dominate. The recommended model choice remains the best validation result, which is the random-search tuned LightGBM ranker. A larger Optuna run on more users would be the next best optimization step if compute time is available.
 
 ## 9. Cold-Start Analysis
 

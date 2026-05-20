@@ -1,0 +1,364 @@
+{
+  "train_cutoff": "2025-11-01",
+  "train_end": "2025-12-01",
+  "eval_cutoff": "2025-12-01",
+  "eval_end": "2026-01-01",
+  "train_users": 40000,
+  "eval_users": 40000,
+  "train_rows": 1152676,
+  "eval_rows": 1609149,
+  "candidate_recall": {
+    "candidate_hits": 49707,
+    "target_items": 158738,
+    "candidate_recall": 0.31313863095163097,
+    "oracle_precision_at_10": 0.1242675
+  },
+  "baseline_metrics": {
+    "users_evaluated": 40000,
+    "k": 10,
+    "total_correct": 33466,
+    "precision_at_10_micro": 0.083665,
+    "mean_iou": 0.0628382873141794,
+    "global_iou": 0.0637117531488448,
+    "mean_reciprocal_rank_first_hit": 0.34520750992064525,
+    "map_at_k": 0.18488538096025592
+  },
+  "ranker_metrics": {
+    "users_evaluated": 40000,
+    "k": 10,
+    "total_correct": 33716,
+    "precision_at_10_micro": 0.08429,
+    "mean_iou": 0.06302078108249175,
+    "global_iou": 0.06421826133000141,
+    "mean_reciprocal_rank_first_hit": 0.3622454563492169,
+    "map_at_k": 0.19222889381771358
+  },
+  "best_trial": {
+    "name": "optuna_trial_6",
+    "params": {
+      "num_boost_round": 460,
+      "learning_rate": 0.05280273209249783,
+      "num_leaves": 47,
+      "min_data_in_leaf": 90,
+      "feature_fraction": 0.7960938511020726,
+      "bagging_fraction": 0.7277377336647556,
+      "lambda_l2": 0.599326836668414
+    },
+    "metrics": {
+      "users_evaluated": 40000,
+      "k": 10,
+      "total_correct": 33716,
+      "precision_at_10_micro": 0.08429,
+      "mean_iou": 0.06302078108249175,
+      "global_iou": 0.06421826133000141,
+      "mean_reciprocal_rank_first_hit": 0.3622454563492169,
+      "map_at_k": 0.19222889381771358
+    },
+    "study_best_value": 0.19222889381771358,
+    "study_best_params": {
+      "num_boost_round": 460,
+      "learning_rate": 0.05280273209249783,
+      "num_leaves": 47,
+      "min_data_in_leaf": 90,
+      "feature_fraction": 0.7960938511020726,
+      "bagging_fraction": 0.7277377336647556,
+      "lambda_l2": 0.599326836668414
+    }
+  },
+  "trial_results": [
+    {
+      "name": "optuna_trial_0",
+      "params": {
+        "num_boost_round": 220,
+        "learning_rate": 0.031035451528714682,
+        "num_leaves": 47,
+        "min_data_in_leaf": 30,
+        "feature_fraction": 0.7564847850358383,
+        "bagging_fraction": 0.8336647510712832,
+        "lambda_l2": 2.1597250932105787
+      },
+      "metrics": {
+        "users_evaluated": 40000,
+        "k": 10,
+        "total_correct": 33876,
+        "precision_at_10_micro": 0.08469,
+        "mean_iou": 0.06320657722146689,
+        "global_iou": 0.06454267979011626,
+        "mean_reciprocal_rank_first_hit": 0.3614367063492167,
+        "map_at_k": 0.19189145126685028
+      }
+    },
+    {
+      "name": "optuna_trial_1",
+      "params": {
+        "num_boost_round": 220,
+        "learning_rate": 0.0470458694845786,
+        "num_leaves": 31,
+        "min_data_in_leaf": 220,
+        "feature_fraction": 0.9329390718407614,
+        "bagging_fraction": 0.7566148192106797,
+        "lambda_l2": 0.48836057003191935
+      },
+      "metrics": {
+        "users_evaluated": 40000,
+        "k": 10,
+        "total_correct": 33766,
+        "precision_at_10_micro": 0.084415,
+        "mean_iou": 0.0629998631937964,
+        "global_iou": 0.06431962085596946,
+        "mean_reciprocal_rank_first_hit": 0.3614611805555657,
+        "map_at_k": 0.19163301051902296
+      }
+    },
+    {
+      "name": "optuna_trial_2",
+      "params": {
+        "num_boost_round": 160,
+        "learning_rate": 0.08818717733207455,
+        "num_leaves": 47,
+        "min_data_in_leaf": 60,
+        "feature_fraction": 0.8592649925838798,
+        "bagging_fraction": 0.9726559822580909,
+        "lambda_l2": 0.4424625102595975
+      },
+      "metrics": {
+        "users_evaluated": 40000,
+        "k": 10,
+        "total_correct": 33772,
+        "precision_at_10_micro": 0.08443,
+        "mean_iou": 0.0630206892763139,
+        "global_iou": 0.06433178529657159,
+        "mean_reciprocal_rank_first_hit": 0.3621583928571535,
+        "map_at_k": 0.19209719165328207
+      }
+    },
+    {
+      "name": "optuna_trial_3",
+      "params": {
+        "num_boost_round": 360,
+        "learning_rate": 0.0788659803544023,
+        "num_leaves": 127,
+        "min_data_in_leaf": 60,
+        "feature_fraction": 0.935411499959192,
+        "bagging_fraction": 0.897400070346666,
+        "lambda_l2": 3.6450358402049368
+      },
+      "metrics": {
+        "users_evaluated": 40000,
+        "k": 10,
+        "total_correct": 33577,
+        "precision_at_10_micro": 0.0839425,
+        "mean_iou": 0.06272022590925931,
+        "global_iou": 0.0639365832573249,
+        "mean_reciprocal_rank_first_hit": 0.3600731448412803,
+        "map_at_k": 0.1909816751661322
+      }
+    },
+    {
+      "name": "optuna_trial_4",
+      "params": {
+        "num_boost_round": 460,
+        "learning_rate": 0.05932023645687853,
+        "num_leaves": 127,
+        "min_data_in_leaf": 60,
+        "feature_fraction": 0.9162747670159141,
+        "bagging_fraction": 0.8464470191493236,
+        "lambda_l2": 3.854835899772805
+      },
+      "metrics": {
+        "users_evaluated": 40000,
+        "k": 10,
+        "total_correct": 33694,
+        "precision_at_10_micro": 0.084235,
+        "mean_iou": 0.0629507112665984,
+        "global_iou": 0.06417366925438629,
+        "mean_reciprocal_rank_first_hit": 0.36058114087302645,
+        "map_at_k": 0.19158414447515226
+      }
+    },
+    {
+      "name": "optuna_trial_5",
+      "params": {
+        "num_boost_round": 220,
+        "learning_rate": 0.02611333041362089,
+        "num_leaves": 95,
+        "min_data_in_leaf": 60,
+        "feature_fraction": 0.7064274505389015,
+        "bagging_fraction": 0.9753941783199005,
+        "lambda_l2": 4.040601897822085
+      },
+      "metrics": {
+        "users_evaluated": 40000,
+        "k": 10,
+        "total_correct": 33885,
+        "precision_at_10_micro": 0.0847125,
+        "mean_iou": 0.0632680276120243,
+        "global_iou": 0.06456093420443439,
+        "mean_reciprocal_rank_first_hit": 0.36173103174604254,
+        "map_at_k": 0.19214599004787192
+      }
+    },
+    {
+      "name": "optuna_trial_6",
+      "params": {
+        "num_boost_round": 460,
+        "learning_rate": 0.05280273209249783,
+        "num_leaves": 47,
+        "min_data_in_leaf": 90,
+        "feature_fraction": 0.7960938511020726,
+        "bagging_fraction": 0.7277377336647556,
+        "lambda_l2": 0.599326836668414
+      },
+      "metrics": {
+        "users_evaluated": 40000,
+        "k": 10,
+        "total_correct": 33716,
+        "precision_at_10_micro": 0.08429,
+        "mean_iou": 0.06302078108249175,
+        "global_iou": 0.06421826133000141,
+        "mean_reciprocal_rank_first_hit": 0.3622454563492169,
+        "map_at_k": 0.19222889381771358
+      }
+    },
+    {
+      "name": "optuna_trial_7",
+      "params": {
+        "num_boost_round": 220,
+        "learning_rate": 0.04138727606565356,
+        "num_leaves": 31,
+        "min_data_in_leaf": 90,
+        "feature_fraction": 0.7475262624828141,
+        "bagging_fraction": 0.9678930600883289,
+        "lambda_l2": 1.197809453334862
+      },
+      "metrics": {
+        "users_evaluated": 40000,
+        "k": 10,
+        "total_correct": 33813,
+        "precision_at_10_micro": 0.0845325,
+        "mean_iou": 0.06317798173480176,
+        "global_iou": 0.06441491641663094,
+        "mean_reciprocal_rank_first_hit": 0.3616481547619158,
+        "map_at_k": 0.19197225519652444
+      }
+    }
+  ],
+  "feature_importances": [
+    [
+      "ui_recency_x_freq",
+      228650.30180871487
+    ],
+    [
+      "ui_days_since_last",
+      201130.28200423717
+    ],
+    [
+      "purchase_share",
+      97007.87194371223
+    ],
+    [
+      "item_txns",
+      70989.1253182888
+    ],
+    [
+      "item_buyers",
+      45248.479053378105
+    ],
+    [
+      "item_txns_7d",
+      42060.190336585045
+    ],
+    [
+      "item_trend_ratio",
+      31393.636361956596
+    ],
+    [
+      "ui_qty",
+      26063.64959836006
+    ],
+    [
+      "item_avg_price",
+      24820.94466137886
+    ],
+    [
+      "user_days_since_last",
+      22505.406960487366
+    ],
+    [
+      "user_recency_x_freq",
+      18443.638226389885
+    ],
+    [
+      "price_ratio",
+      17362.56832408905
+    ],
+    [
+      "user_txns_90d",
+      15283.80369079113
+    ],
+    [
+      "item_txns_30d",
+      14810.66205394268
+    ],
+    [
+      "source_copurchase",
+      13041.767682313919
+    ],
+    [
+      "user_txns_30d",
+      9864.427327513695
+    ],
+    [
+      "user_txns",
+      9661.978701353073
+    ],
+    [
+      "user_avg_price",
+      9556.744819045067
+    ],
+    [
+      "item_txns_90d",
+      8604.297957539558
+    ],
+    [
+      "source_group",
+      7843.031955242157
+    ],
+    [
+      "user_velocity",
+      5359.592458963394
+    ],
+    [
+      "user_items",
+      4677.632539868355
+    ],
+    [
+      "item_penetration",
+      4271.684163093567
+    ],
+    [
+      "event_views",
+      3272.8092334270477
+    ],
+    [
+      "ui_txns",
+      2908.452077150345
+    ],
+    [
+      "event_carts",
+      1565.5775430202484
+    ],
+    [
+      "item_log_buyers",
+      648.3994410037994
+    ],
+    [
+      "source_user_hist",
+      190.3665099143982
+    ],
+    [
+      "source_global",
+      68.5230507850647
+    ]
+  ]
+}
